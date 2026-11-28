@@ -13,6 +13,7 @@
   button,select,.btn{background:#1f2430;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 11px;font:inherit;cursor:pointer;white-space:nowrap}
   button:hover,.btn:hover{border-color:var(--acc)}
   button.primary{background:var(--acc);color:#14110a;border-color:var(--acc);font-weight:600;min-width:84px}
+  #loop.on{background:#2b3a55;border-color:var(--acc);color:var(--acc)}
   button.rec.on{background:#e01a4f;border-color:#e01a4f;color:#fff}
   #info{color:var(--mut);margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46ch}
   #bar{height:6px;background:#181c25;cursor:pointer;position:relative;flex:none}
@@ -41,6 +42,7 @@
   <label class="btn" title="Optional: the real song audio to play instead of the synth">Open audio<input id="afile" type="file" accept="audio/*" hidden></label>
   <button id="play" class="primary">▶ Play</button>
   <button id="restart" title="Restart">⟲</button>
+  <button id="loop" title="Loop: restart the song when it ends">🔁 Loop</button>
   <button id="rec" class="rec" title="Record a video from the start">● Record</button>
   <button id="gear">⚙ Settings</button>
   <div id="info">Demo song</div>
@@ -147,7 +149,7 @@ const THEMES={
 };
 const PEG_PALETTE=['#e03232','#50d264','#e6dc32','#aeaad2','#f54df7','#ff9900'];
 
-const DEFAULTS={theme:'dark',camera:2,zoom:1,pegs:true,pegMode:'palette',bparts:true,trail:true,aspect:'fill',
+const DEFAULTS={loop:false,theme:'dark',camera:2,zoom:1,pegs:true,pegMode:'palette',bparts:true,trail:true,aspect:'fill',
   speed:600,size:50,spacing:30,chance:30,drums:true,seed:1,sound:'piano',vol:0.7,offset:0};
 const opts={...DEFAULTS};
 try{ Object.assign(opts,JSON.parse(localStorage.getItem('bouncy-square-settings')||'{}')); }catch(e){}
@@ -358,6 +360,7 @@ function schedule(){
       voice(n,Math.max(ac.currentTime,startAt+n.s));
     }
   }
+  if(t>S.end&&opts.loop&&!rec){ playing=false; stopAll(); pausedAt=S.start; resetVisual(); play(); return; }
   if(t>S.end){ playing=false; pausedAt=S.end; stopAll(); ui(); if(rec) setTimeout(stopRec,400); }
 }
 setInterval(schedule,25);
@@ -493,6 +496,7 @@ function frame(){
 
 /* ---------- UI ---------- */
 function ui(){
+  $('#loop').classList.toggle('on',!!opts.loop); $('#loop').setAttribute('aria-pressed',!!opts.loop);
   $('#play').textContent=playing?'❚❚ Pause':'▶ Play';
   $('#rec').classList.toggle('on',!!rec); $('#rec').textContent=rec?'■ Stop rec':'● Record';
   $('#info').textContent=`${S.name} · ${S.onsets.length} bounces`+(S.failed?` · ${S.failed} tight spots`:'');
@@ -541,6 +545,7 @@ $('#file').onchange=e=>{ if(e.target.files[0]) loadFile(e.target.files[0]); e.ta
 $('#afile').onchange=e=>{ if(e.target.files[0]) loadAudio(e.target.files[0]); e.target.value=''; };
 $('#play').onclick=()=>playing?pause():play();
 $('#restart').onclick=()=>seek(S.start);
+$('#loop').onclick=()=>{ opts.loop=!opts.loop; saveOpts(); ui(); };
 $('#rec').onclick=()=>rec?stopRec():startRec();
 $('#bar').onclick=e=>{ const r=e.currentTarget.getBoundingClientRect(); seek(S.start+(e.clientX-r.left)/r.width*(S.end-S.start)); };
 addEventListener('keydown',e=>{ if(e.code==='Space'&&!['INPUT','SELECT','BUTTON'].includes(e.target.tagName)){e.preventDefault(); playing?pause():play();} });
